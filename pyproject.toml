@@ -1,0 +1,201 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[project]
+name = "scamp"
+version = "0.0.1"
+description = "Single-cell analysis of focal amplifications."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Matthew G. Jones"},
+]
+maintainers = [
+    {name = "Matthew G. Jones", email = "mgjones@stanford.edu"},
+]
+
+urls.Documentation = ""
+urls.Source = ""
+urls.Home-page = ""
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "anndata>=0.11",
+    "numpy",
+    "pandas",
+    "rich>=12.0.0",
+    "scikit-learn>=0.21.2",
+    "scipy",
+    "sparse>=0.14.0",
+    "torch",
+    "torchmetrics>=0.11.0",
+    "tqdm",
+    "xarray>=2023.2.0",
+]
+
+[project.scripts]
+scamp = "scamp.cli:scamp_app"
+
+[project.optional-dependencies]
+tests = ["pytest", "coverage"]
+editing = ["jupyter", "pre-commit"]
+dev = ["scamp[editing,tests]"]
+test = ["scamp[tests]"]
+cuda = ["torchvision","torchaudio"]
+
+docs = [
+    "docutils>=0.8,!=0.18.*,!=0.19.*",
+    "sphinx>=4.1",
+    "ipython",
+    "sphinx-book-theme>=1.0.1",
+    "sphinx_copybutton",
+    "sphinx-design",
+    "sphinxext-opengraph",
+    "sphinx-hoverxref",
+    "sphinxcontrib-bibtex>=1.0.0",
+    "myst-parser",
+    "myst-nb",
+    "sphinx-autodoc-typehints",
+]
+docsbuild = ["scamp[docs,optional]"]
+
+optional = [
+    "scamp"
+]
+
+tutorials = [
+    "jupyter",
+]
+
+all = ["scamp[cuda,dev,docs,optional,tutorials]"]
+
+[tool.hatch.build.targets.wheel]
+packages = ['scamp']
+
+[tool.coverage.run]
+source = ["scamp"]
+omit = [
+    "**/test_*.py",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+xfail_strict = true
+markers = [
+    "internet: mark tests that requires internet access",
+    "optional: mark optional tests, usually take more time",
+]
+
+[tool.ruff]
+src = ["src"]
+line-length = 99
+indent-width = 4
+target-version = "py312"
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.lint]
+select = [
+    "F",  # Errors detected by Pyflakes
+    "E",  # Error detected by Pycodestyle
+    "W",  # Warning detected by Pycodestyle
+    "I",  # isort
+    "D",  # pydocstyle
+    "B",  # flake8-bugbear
+    "TID",  # flake8-tidy-imports
+    "C4",  # flake8-comprehensions
+    "BLE",  # flake8-blind-except
+    "UP",  # pyupgrade
+    "RUF100",  # Report unused noqa directives
+    "PT", # pytest style
+    "NPY", # numpy formatting
+    "TCH", # flake8-type-checking
+    "FA", # flake8-future-annotations
+]
+ignore = [
+    # allow I, O, l as variable names -> I is the identity matrix
+    "E741",
+    # Missing docstring in public package
+    "D104",
+    # Missing docstring in public module
+    "D100",
+    # Missing docstring in __init__
+    "D107",
+    # Errors from function calls in argument defaults. These are fine when the result is immutable.
+    "B008",
+    # first line should end with a period [Bug: doesn't work with single-line docstrings]
+    "D400",
+    # First line should be in imperative mood; try rephrasing
+    "D401",
+    # We want docstrings to start immediately after the opening triple quote
+    "D213",
+    # Raising ValueError is sufficient in tests.
+    "PT011",
+    # We support np.random functions.
+    "NPY002"
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"docs/*" = ["I", "BLE001"]
+"tests/*" = ["D"]
+"*/__init__.py" = ["F401"]
+"scamp/__init__.py" = ["I"]
+
+[tool.ruff.format]
+docstring-code-format = true
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.jupytext]
+formats = "ipynb,md"
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = []
+strict = true
