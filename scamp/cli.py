@@ -56,13 +56,15 @@ def quantify_copy_numbers(
 ):
 
     binned_copy_number_script = (
-        f"{os.path.dirname(__file__)}/utilities/scATAC_CNV.R"
+        f"{os.path.dirname(__file__)}/scripts/scATAC_CNV.R"
     )
     gene_aggregation_script = (
-        f"{os.path.dirname(__file__)}/utilities/aggregate_gene_copy_numbers.R"
+        f"{os.path.dirname(__file__)}/scripts/aggregate_gene_copy_number.R"
     )
 
     # compute copy-numbers in genomic windows
+    print(f"Binning copy-numbers from {fragment_directory} in windows "
+          f"of size {window_size}...")
     os.system(
         f"Rscript {binned_copy_number_script} "
         f"{fragment_directory} {window_size} "
@@ -72,6 +74,7 @@ def quantify_copy_numbers(
     )
 
     # bin by gene
+    print(f"Aggregating together copy-numbers across genes...")
     os.system(
         f"Rscript {gene_aggregation_script} "
         f"{output_directory} {output_directory} {reference_genome_name}"

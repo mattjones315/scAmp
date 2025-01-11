@@ -168,7 +168,7 @@ class SCAMP(nn.Module):
 
             self.statistics['Loss'].append(running_loss)
 
-            if verbose and (i % reporting_freq == 0):
+            if verbose and (epoch % reporting_freq == 0):
                 
                 preds = self.proba(X_train).round()
         
@@ -182,13 +182,6 @@ class SCAMP(nn.Module):
 
         _x = self.forward(torch.Tensor(x))
         return torch.softmax(_x, dim=1) 
-
-    
-    # @torch.no_grad()
-    # def eval(self, _x, _y):
-
-    #     _y_preds = self.forward(_x).detach().numpy()
-    #     return utilities.get_metrics(_y.detach().numpy(), _y_preds), _y_preds
 
     def save_model(self, path):
         """Save model."""

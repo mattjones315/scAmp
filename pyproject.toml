@@ -45,6 +45,7 @@ dependencies = [
     "xarray>=2023.2.0",
 ]
 
+
 [project.scripts]
 scamp = "scamp.cli:scamp_app"
 
@@ -81,8 +82,14 @@ tutorials = [
 
 all = ["scamp[cuda,dev,docs,optional,tutorials]"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"scripts" = "scamp/scripts"
+"reference" = "scamp/reference"
+
+
 [tool.hatch.build.targets.wheel]
 packages = ['scamp']
+include = ["/scripts"]
 
 [tool.coverage.run]
 source = ["scamp"]
@@ -99,7 +106,7 @@ markers = [
 ]
 
 [tool.ruff]
-src = ["src"]
+src = ["scamp"]
 line-length = 99
 indent-width = 4
 target-version = "py312"
