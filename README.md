@@ -10,7 +10,15 @@ It consists of three main modules (in progress):
 
 ## Installation
 
-You can install scAmp by cloning this directory and running `pip install .` This should install scAmp and all dependencies.
+You can install scAmp by cloning this directory and running `pip install .` This should install scAmp and all python dependencies.
+
+In addition, if you'd like to use the ATAC CNV module, you should install the following R packages:
+
+* [ArchR](https://github.com/GreenleafLab/ArchR)
+* SummarizedExperiment
+* dplyr
+
+scAmp was tested with R version 4.3.2 (and should work with later versions).
 
 ## Running scAmp from the command line
 
