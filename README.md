@@ -33,9 +33,11 @@ Currently there are two command line modules you can run:
 
 You can look at usage instructions for these modules by running `scamp [module] --help`.
 
-## Pretrained model
+## Pretrained models
 
-Though you can train new models using scAmp, we also provide pre-trained models in the `./pretrained_models` directory. You can load this in as so:
+Though you can train new models using scAmp, we also provide pre-trained models in the `./pretrained_models` directory.
+
+You can pass a path to the pretrained model directly to `scamp predict`. Otherwise, if you are using scAmp interactively, you can load this in as so:
 
 ```
 from scamp import models
