@@ -2,6 +2,8 @@
 A simple MLP model that predicts ecDNA status from counts alone.
 """
 
+import os
+
 import collections
 from typing import List, Tuple
 
@@ -34,22 +36,25 @@ class SCAMP(nn.Module):
         activation: str = "relu",
         dropout_rate: float = 0.1,
     ):
-        
+
         super().__init__()
 
         if activation == "relu":
             activation_fn = nn.ReLU
-        elif activation == 'tanh':
+        elif activation == "tanh":
             activation_fn = nn.Tanh
-        elif activation == 'sigmoid':
+        elif activation == "sigmoid":
             activation_fn = nn.Sigmoid
         elif activation == None:
             if n_layers > 0:
-                raise Exception("If n_layers > 1 you must specify a valid activation function.")
+                raise Exception(
+                    "If n_layers > 1 you must specify a valid activation function."
+                )
         else:
-            raise Exception("Please specify one of activation functions: `relu`"
-                            " `sigmoid` or `tanh`")
-
+            raise Exception(
+                "Please specify one of activation functions: `relu`"
+                " `sigmoid` or `tanh`"
+            )
 
         self.trained = False
         self.statistics = {}
@@ -82,6 +87,14 @@ class SCAMP(nn.Module):
             )
         )
 
+        # save module kwargs
+        self._module_kwargs = {
+            "n_layers": n_layers,
+            "n_hidden": n_hidden,
+            "dropout_rate": dropout_rate,
+            "activation": activation,
+        }
+
     def forward(self, x):
         """Forward computation on `x`
 
@@ -99,16 +112,18 @@ class SCAMP(nn.Module):
                 x = layer(x)
         return x
 
-    def fit(self,
-              X,
-              y,
-              n_epochs: int = 100,
-              learning_rate: float = 1e-3,
-              batch_size: int = 128,
-              optimizer: str = 'Adam',
-              num_workers: int = 1,
-              verbose=True,
-              reporting_freq=1000):
+    def fit(
+        self,
+        X,
+        y,
+        n_epochs: int = 100,
+        learning_rate: float = 1e-3,
+        batch_size: int = 128,
+        optimizer: str = "Adam",
+        num_workers: int = 1,
+        verbose=True,
+        reporting_freq=1000,
+    ):
         """Train model.
 
         Train model based on paired count distributions and ecDNA/HSR
@@ -125,74 +140,131 @@ class SCAMP(nn.Module):
         """
 
         # initialize training objects
-        if optimizer == 'Adam':
+        if optimizer == "Adam":
             optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
         # loss_fn = nn.BCELoss()
         loss_fn = nn.CrossEntropyLoss()
 
-        X_train, y_train = torch.Tensor(X), torch.Tensor(y).view(y.shape[0], 2).to(torch.float)
+        X_train, y_train = torch.Tensor(X), torch.Tensor(y).view(
+            y.shape[0], 2
+        ).to(torch.float)
 
         # create batchified dataset and loader
         scamp_dataset = torch.utils.data.TensorDataset(X_train, y_train)
-        dataloader = torch.utils.data.DataLoader(scamp_dataset,
-                                    batch_size=batch_size, shuffle=True,
-                                    num_workers=num_workers)
-    
+        dataloader = torch.utils.data.DataLoader(
+            scamp_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=num_workers,
+        )
+
         # log statistics
-        self.statistics['Loss'] = []
+        self.statistics["Loss"] = []
 
         # put into train mode
         self.train()
 
         for epoch in range(n_epochs):
-            
+
             running_loss = 0.0
             for _, data in enumerate(dataloader, 0):
-                
+
                 X_batch, y_batch = data
                 _y_batch = self.forward(X_batch)
                 loss = loss_fn(_y_batch, y_batch)
-        
+
                 # backward pass
                 loss.backward()
-                
+
                 # updates
                 optimizer.step()
-                
+
                 # zero gradients
                 optimizer.zero_grad()
 
                 # track loss
                 running_loss += loss.item()
 
-            self.statistics['Loss'].append(running_loss)
+            self.statistics["Loss"].append(running_loss)
 
             if verbose and (epoch % reporting_freq == 0):
-                
+
                 preds = self.proba(X_train).round()
-        
-                accuracy = sklearn.metrics.accuracy_score(preds.detach().numpy(), y_train.detach().numpy())
-                print(f'[epoch:{epoch}]: The loss value for training part={running_loss}, accuracy={accuracy}')
+
+                # put back into train mode
+                self.train()
+
+                accuracy = sklearn.metrics.accuracy_score(
+                    preds.detach().numpy(), y_train.detach().numpy()
+                )
+                print(
+                    f"[epoch:{epoch}]: The loss value for training part={running_loss}, accuracy={accuracy}"
+                )
 
         self.trained = True
 
     @torch.no_grad()
     def proba(self, x):
 
+        self.eval()
         _x = self.forward(torch.Tensor(x))
-        return torch.softmax(_x, dim=1) 
+        return torch.softmax(_x, dim=1)
 
-    def save_model(self, path):
-        """Save model."""
+    def save(self, model_save_dir: str, overwrite: bool = False):
+        """Save model.
+
+        Args:
+            path_dir: File path to save directory.
+            overwrite: Overwrite existing saved model.
+        """
 
         if self.trained:
-            torch.save(self.fc_layers.state_dict(), path)
+
+            if (os.path.exists(model_save_dir)) and (not overwrite):
+                raise Exception(
+                    "Model save directory already exists and overwrite is False."
+                )
+
+            os.makedirs(model_save_dir, exist_ok=overwrite)
+
+            model_state_dict = self.state_dict()
+            model_kwargs = self._module_kwargs
+
+            torch.save(
+                {
+                    "model_state_dict": model_state_dict,
+                    "attr_dict": model_kwargs,
+                },
+                f"{model_save_dir}/model.pt",
+            )
+            print(f"Saved model at {model_save_dir}/model.pt")
         else:
             raise Exception("Please train model before saving.")
 
+    @classmethod
+    def load(cls, model_save_dir):
+
+        saved_model_state = torch.load(f"{model_save_dir}/model.pt")
+
+        model_params = saved_model_state["model_state_dict"]
+        model_kwargs = saved_model_state["attr_dict"]
+
+        loaded_model = cls(**model_kwargs)
+        loaded_model.load_state_dict(model_params)
+        
+        loaded_model.trained = True
+        loaded_model.eval()
+
+        return loaded_model
+
     def prepare_copy_numbers(
-        self, copy_numbers, genes, min_copy_number, max_percentile, filter_copy_number=3,
+        self,
+        copy_numbers,
+        genes,
+        min_copy_number,
+        max_percentile,
+        filter_copy_number=3,
     ) -> Tuple[np.array, np.array]:
         """Prepare copy-number data.
 
@@ -216,13 +288,13 @@ class SCAMP(nn.Module):
         means = np.mean(copy_numbers, axis=0)
         kii = np.where(means >= filter_copy_number)[0]
         genes = genes[kii]
-        copy_numbers = copy_numbers[:,kii]
+        copy_numbers = copy_numbers[:, kii]
 
         X = np.zeros((len(genes), 14))
 
         for g_i in range(len(genes)):
 
-            vals = copy_numbers[:,g_i]
+            vals = copy_numbers[:, g_i]
 
             cap = np.percentile(vals, max_percentile)
             vals[vals > cap] = np.nan
