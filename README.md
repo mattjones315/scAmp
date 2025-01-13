@@ -32,3 +32,14 @@ Currently there are two command line modules you can run:
 * `scamp predict`: Predicts ecDNA status from copy-number data.
 
 You can look at usage instructions for these modules by running `scamp [module] --help`.
+
+## Pretrained model
+
+Though you can train new models using scAmp, we also provide pre-trained models in the `./pretrained_models` directory. You can load this in as so:
+
+```
+from scamp import models
+
+saved_model_path = "./pretrained_models/scamp_model_1.0"
+pretrained_model = models.SCAMP.load(pretrained_model_path)
+```
