@@ -14,17 +14,23 @@ import typer
 from scamp import io
 from scamp.mixins import CLIError
 from scamp import predict
+from scamp import plotting
 
 scamp_app = typer.Typer(help="Tools for single-cell analysis of ecDNA.")
 
-CopyNumberFile = Annotated[
+AnnDataFileArg = Annotated[
+    str, typer.Option(help="File path to Anndata with copy-number data")
+]
+CopyNumberFileArg = Annotated[
     str, typer.Option(help="File path to tab-delimited file of copy numbers")
 ]
 FragDirArg = Annotated[
     str,
     typer.Argument(help="Path to directory containing ATAC fragment files."),
 ]
-ModelFileArg = Annotated[str, typer.Argument(help="Path to model file.")]
+ModelDirArg = Annotated[
+    str, typer.Argument(help="Path to saved model directory.")
+]
 OutputDirArg = Annotated[str, typer.Argument(help="Directory of output files.")]
 WhitelistFileArg = Annotated[
     str, typer.Argument(help="File path to cellBC whitelist.")
@@ -63,8 +69,10 @@ def quantify_copy_numbers(
     )
 
     # compute copy-numbers in genomic windows
-    print(f"Binning copy-numbers from {fragment_directory} in windows "
-          f"of size {window_size}...")
+    print(
+        f"Binning copy-numbers from {fragment_directory} in windows "
+        f"of size {window_size}..."
+    )
     os.system(
         f"Rscript {binned_copy_number_script} "
         f"{fragment_directory} {window_size} "
@@ -84,29 +92,50 @@ def quantify_copy_numbers(
 @scamp_app.command(name="predict", help="Predict ecDNA status.")
 def predict_ecdna(
     output_dir: OutputDirArg,
-    model_file: ModelFileArg,
-    copy_numbers_file: CopyNumberFile,
-    anndata: Annotated[
-        str, typer.Option("File path to Anndata with copy-number data")
-    ] = None,
+    model_file: ModelDirArg,
+    copy_numbers_file: CopyNumberFileArg = None,
+    anndata_file: AnnDataFileArg = None,
     mode: Annotated[
-        str, typer.Option("Mode: (currently only offering `copynumber`)")
+        str, typer.Option(help="Mode: (currently only offering `copynumber`)")
     ] = "copynumber",
+    decision_rule: Annotated[
+        float, typer.Option(help="Likelihood decision rule.")
+    ] = 0.5,
     min_copy_number: Annotated[
         float, typer.Option(help="Minimum copy-number to consider.")
     ] = 2.0,
     max_percentile: Annotated[
         float, typer.Option(help="Maximum percentile to cap copy-numbers.")
     ] = 99.0,
+    filter_copy_number: Annotated[
+         float, typer.Option(help="Drop genes whose mean copy-number is below this threshold.")
+    ] = 2.5,
+    no_plot: Annotated[
+        float, typer.Option(help="Suppress plotting functionality.")
+    ] = False
 ) -> None:
 
     if (copy_numbers_file is None) and (anndata_file is None):
         raise CLIError("Specify one of copy numbers file anndata file.")
 
     if mode == "copynumber":
-        preds = predict.predict_ecdna_from_copy_number(
+        predictions = predict.predict_ecdna_from_copy_number(
             copy_numbers_file,
             model_file,
+            decision_rule,
             min_copy_number,
             max_percentile,
+            filter_copy_number
         )
+
+        os.makedirs(output_dir)
+
+        predictions.to_csv(f"{output_dir}/model_predictions.tsv", sep='\t')
+        if not no_plot:
+            plotting.plot_scamp_predictions_plotly(
+                predictions,
+                f"{output_dir}/ecDNA_predictions.html",
+                title=f"scAmp predictions for {copy_numbers_file.split('/')[-1]}"
+            )
+
+        print(f"Output written out to {output_dir}.")
