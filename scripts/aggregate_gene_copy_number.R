@@ -24,8 +24,12 @@ REFERENCE <- args[[3]]
 
 if (REFERENCE == 'hg19') {
     gene_ranges <- geneAnnoHg19$genes
-} else {
+} else if (REFERENCE == 'hg38') {
     gene_ranges <- geneAnnoHg38$genes
+} else if (REFERENCE == 'mm10') {
+    gene_ranges <- geneAnnoMm10$genes
+} else {
+    stop('Choose one of the following referenge genomes: `hg38`, `hg19`, `mm10`')
 }
 
 gene_ranges <- gene_ranges[!is.na(gene_ranges$symbol),]

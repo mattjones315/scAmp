@@ -34,12 +34,20 @@ if (REFERENCE == 'hg19') {
         paste0(ROOT_DIR, '/reference/hg19-blacklist.v2.bed.gz')
     )
     genome <- BSgenome.Hsapiens.UCSC.hg19
-} else {
+} else if (REFERENCE == 'hg38') {
     suppressMessages(library(BSgenome.Hsapiens.UCSC.hg38))
     blacklist <- rtracklayer::import.bed(
         paste0(ROOT_DIR, '/reference/hg38.blacklist.bed.gz')
     )
     genome <- BSgenome.Hsapiens.UCSC.hg38
+} else if (REFERENCE == 'mm10') {
+    suppressMessages(library(BSgenome.Mmusculus.UCSC.mm10))
+    blacklist <- rtracklayer::import.bed(
+        paste0(ROOT_DIR, '/reference/mm10.blacklist.bed.gz')
+    )
+    genome <- BSgenome.Mmusculus.UCSC.mm10
+} else {
+    stop('Choose one of the following referenge genomes: `hg38`, `hg19`, `mm10`')
 }
 
 windows <- makeWindows(genome = genome,

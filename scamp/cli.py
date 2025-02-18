@@ -21,27 +21,32 @@ scamp_app = typer.Typer(help="Tools for single-cell analysis of ecDNA.")
 AnnDataFileArg = Annotated[
     str, typer.Option(help="File path to Anndata with copy-number data")
 ]
+CopyNumberRangesDirArg = Annotated[
+    str, typer.Option(help="File path to directory of RDSs of GRanges file of "
+                      "copy-number bins, if it's already computed.")
+]
 CopyNumberFileArg = Annotated[
     str, typer.Option(help="File path to tab-delimited file of copy numbers")
 ]
 FragDirArg = Annotated[
     str,
-    typer.Argument(help="Path to directory containing ATAC fragment files."),
+    typer.Option(help="Path to directory containing ATAC fragment files."),
 ]
 ModelDirArg = Annotated[
     str, typer.Argument(help="Path to saved model directory.")
 ]
 OutputDirArg = Annotated[str, typer.Argument(help="Directory of output files.")]
 WhitelistFileArg = Annotated[
-    str, typer.Argument(help="File path to cellBC whitelist.")
+    str, typer.Option(help="File path to cellBC whitelist.")
 ]
 
 
 @scamp_app.command(name="atac-cnv", help="Quantify single-cell copy-numbers.")
 def quantify_copy_numbers(
-    fragment_directory: FragDirArg,
     output_directory: OutputDirArg,
-    whitelist_file: WhitelistFileArg,
+    copy_number_directory: CopyNumberRangesDirArg = None,
+    fragment_directory: FragDirArg = None,
+    whitelist_file: WhitelistFileArg = None,
     window_size: Annotated[
         int, typer.Option(help="Base pair width for genomic windows")
     ] = 3000000,
@@ -69,23 +74,31 @@ def quantify_copy_numbers(
     )
 
     # compute copy-numbers in genomic windows
-    print(
-        f"Binning copy-numbers from {fragment_directory} in windows "
-        f"of size {window_size}..."
-    )
-    os.system(
-        f"Rscript {binned_copy_number_script} "
-        f"{fragment_directory} {window_size} "
-        f"{step_size} {n_neighbors} "
-        f"{whitelist_file} {output_directory} "
-        f"{reference_genome_name} {os.path.dirname(__file__)}"
-    )
+    if fragment_directory:
+        
+        if whitelist_file is None:
+            raise CLIError("If starting the copy-number pipeline from the " 
+                            "beginning, please provide a whitelist fiel")
+        print(
+            f"Binning copy-numbers from {fragment_directory} in windows "
+            f"of size {window_size}..."
+        )
+        os.system(
+            f"Rscript {binned_copy_number_script} "
+            f"{fragment_directory} {window_size} "
+            f"{step_size} {n_neighbors} "
+            f"{whitelist_file} {output_directory} "
+            f"{reference_genome_name} {os.path.dirname(__file__)}"
+        )
 
     # bin by gene
+    if not copy_number_directory:
+        copy_number_directory = output_directory
+
     print(f"Aggregating together copy-numbers across genes...")
     os.system(
         f"Rscript {gene_aggregation_script} "
-        f"{output_directory} {output_directory} {reference_genome_name}"
+        f"{copy_number_directory} {output_directory} {reference_genome_name}"
     )
 
 
