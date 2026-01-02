@@ -1,3 +1,6 @@
+# Attention
+The development of `scamp` has moved to https://github.com/JonesCompBioLab/scamp
+
 # scAmp
 scAmp (single-cell Amplicon) is a python-based workflow for detecting and
 analyzing focal amplifications from single-cell data.
